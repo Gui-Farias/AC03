@@ -240,8 +240,8 @@ def dicionario_do_filme_por_id(id_filme):
     outra = ''
     for x in range(len(list(retorno['Ratings'][0]['Value']))-5):
         outra+= list(retorno['Ratings'][0]['Value'])[x]
-
-    filmin = {'ano': retorno['Year'], 'nome': retorno['Title'], 'diretor' : retorno['Director'], 'genero' : retorno['Genre'], 'poster': retorno['Poster'], 'nota_rotten_tomatoes': int(temp)/100, 'nota_metacritic': int(tempo)/100,'nota_media':((int(outra)/10)+(int(temp)/100)+(int(tempo)/100))/3}
+    notamedia= ((int(outra)/10)+(int(temp)/100)+(int(tempo)/100))/3
+    filmin = {'ano': retorno['Year'], 'nome': retorno['Title'], 'diretor' : retorno['Director'], 'genero' : retorno['Genre'], 'poster': retorno['Poster'], 'nota_rotten_tomatoes': int(temp)/100, 'nota_metacritic': int(tempo)/100,'nota_media':notamedia}
     return filmin
     
     
@@ -267,14 +267,21 @@ Confira, acessando a URL:
 http://www.omdbapi.com/?s=menace&apikey={SUA-CHAVE-VEM-AQUI}
 '''
 
-def busca_qtd_series(texto_buscar):
-    url = "http://www.omdbapi.com/?apikey={}&s={}&type=series".format(api_key, texto_buscar)
-    retorno = req.get(url).json()
-    return retorno['totalResults']
-
 def conta_tipos_de_midia_para_busca(texto_buscar):
-    batatinha = {"movie" : int(busca_qtd_filmes(texto_buscar)),"game":int(busca_qtd_jogos(texto_buscar)),'series':int(busca_qtd_series(texto_buscar))}
-    return batatinha
+    url = "http://www.omdbapi.com/?apikey={}&s={}".format(api_key, texto_buscar)
+    retorno = req.get(url).json()
+    if retorno['Search'][0]['Type'] == 'movie' or retorno['Search'][0]['Type'] == 'series':
+        tipo = {'movie': 0, 'series': 0}
+    elif retorno['Search'][0]['Type'] == 'game':
+        tipo = {'game': 0}
+    for x in range(len(retorno['Search'])):
+        if retorno['Search'][x]['Type'] == 'movie':
+           tipo['movie']+=1
+        elif retorno['Search'][x]['Type'] == 'series':
+            tipo['series'] += 1
+        elif retorno['Search'][x]['Type'] == 'game':
+            tipo['game'] += 1
+    return tipo
 
 '''
 Outra coisa que podemos fazer com nossos 10 resultados é
@@ -285,7 +292,18 @@ A função id_do_mais_velho faz exatamente isso:
  * Retorna a id do mais velho dentre os 10 primeiros.
 '''
 def id_do_mais_velho(texto_buscar):
-    pass
+    url = "http://www.omdbapi.com/?apikey={}&s={}".format(api_key, texto_buscar)
+    retorno = req.get(url).json()
+    maior = 0
+    filme = ''
+    for x in range(len(retorno['Search'])):
+        if x == 0:
+            maior = retorno['Search'][x]['Year']
+            filme = retorno['Search'][x]['imdbID']
+        elif retorno['Search'][x]['Year'] < maior:
+            maior = retorno['Search'][x]['Year']
+            filme = retorno['Search'][x]['imdbID']
+    return filme
 
 '''
 Faça uma função ids_dos_tres_primeiros, que faz uma busca
@@ -293,7 +311,16 @@ e retorna uma lista com as ids dos três primeiros produtos
 encontrados.
 '''
 def ids_dos_tres_primeiros(texto_buscar):
-    pass
+    url = "http://www.omdbapi.com/?apikey={}&s={}".format(api_key, texto_buscar)
+    retorno = req.get(url).json()
+    filme = []
+    while not len(filme) == 3:
+        for x in range(len(retorno['Search'])):
+            if len(filme)==3:
+                break
+            filme.append(retorno['Search'][x]['imdbID'])
+    print(filme)
+    return filme
 
 '''
 Agora, podemos cruzar os dados.
@@ -308,7 +335,16 @@ string para buscar, e retorna a id do mais bem avaliado entre os
 Não façamos com mais resultados, para não sobrecarregar o servidor.
 '''
 def mais_bem_avaliado_dos_3_primeiros(texto_buscar):
-    pass
+    url = "http://www.omdbapi.com/?apikey={}&s={}".format(api_key, texto_buscar)
+    retorno = req.get(url).json()
+    melhor = maior = 0
+    for x in range(len(ids_dos_tres_primeiros(texto_buscar))):
+        if x  == 0:
+            melhor = ids_dos_tres_primeiros(texto_buscar)[x]
+            maior = dicionario_do_filme_por_id(ids_dos_tres_primeiros(x)['nota_media'])
+        elif dicionario_do_filme_por_id(ids_dos_tres_primeiros(x))> melhor:
+            melhor = 1
+    return melhor
 
 '''
 A próxima função já vem pronta, mas vamos melhorar ela depois.
